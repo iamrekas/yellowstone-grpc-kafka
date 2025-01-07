@@ -56,6 +56,8 @@ pub struct ConfigGrpc2Kafka {
         deserialize_with = "deserialize_usize_str"
     )]
     pub kafka_queue_size: usize,
+    pub max_decoding_message_size: Option<usize>,
+    pub max_encoding_message_size: Option<usize>,
 }
 
 impl ConfigGrpc2Kafka {
@@ -72,6 +74,8 @@ pub struct ConfigKafka2Grpc {
     pub listen: SocketAddr,
     #[serde(default = "ConfigKafka2Grpc::channel_capacity_default")]
     pub channel_capacity: usize,
+    pub max_decoding_message_size: Option<usize>,
+    pub max_encoding_message_size: Option<usize>,
 }
 
 impl ConfigKafka2Grpc {

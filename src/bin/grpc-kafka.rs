@@ -228,13 +228,21 @@ impl ArgsAction {
         tokio::pin!(kafka_error_rx);
 
         // Create gRPC client & subscribe
-        let mut client = GeyserGrpcClient::build_from_shared(config.endpoint)?
+        let mut builder = GeyserGrpcClient::build_from_shared(config.endpoint)?
             .x_token(config.x_token)?
             .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(5))
-            .tls_config(ClientTlsConfig::new().with_native_roots())?
-            .connect()
-            .await?;
+            .timeout(Duration::from_secs(5));
+
+        if let Some(max_decoding_message_size) = config.max_decoding_message_size {
+            builder = builder.max_decoding_message_size(max_decoding_message_size);
+        }
+        if let Some(max_encoding_message_size) = config.max_encoding_message_size {
+            builder = builder.max_encoding_message_size(max_encoding_message_size);
+        }
+
+        builder = builder.tls_config(ClientTlsConfig::new().with_native_roots())?;
+
+        let mut client = builder.connect().await?;
         let mut geyser = client.subscribe_once(config.request.to_proto()).await?;
 
         // Receive-send loop
@@ -345,7 +353,12 @@ impl ArgsAction {
             kafka_config.set(key, value);
         }
 
-        let (grpc_tx, grpc_shutdown) = GrpcService::run(config.listen, config.channel_capacity)?;
+        let (grpc_tx, grpc_shutdown) = GrpcService::run(
+            config.listen,
+            config.channel_capacity,
+            config.max_decoding_message_size,
+            config.max_encoding_message_size,
+        )?;
 
         let (consumer, kafka_error_rx) =
             metrics::StatsContext::create_stream_consumer(&kafka_config)

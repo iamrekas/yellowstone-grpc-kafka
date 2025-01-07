@@ -46,6 +46,8 @@ impl GrpcService {
     pub fn run(
         listen: SocketAddr,
         channel_capacity: usize,
+        max_decoding_message_size: Option<usize>,
+        max_encoding_message_size: Option<usize>,
     ) -> anyhow::Result<(
         broadcast::Sender<SubscribeUpdate>,
         BoxFuture<'static, Result<Result<(), TransportError>, JoinError>>,
@@ -62,7 +64,7 @@ impl GrpcService {
         let (broadcast_tx, _) = broadcast::channel(channel_capacity);
 
         // Run Server
-        let service = GeyserServer::new(Self {
+        let mut service = GeyserServer::new(Self {
             subscribe_id: AtomicUsize::new(0),
             channel_capacity,
             broadcast_tx: broadcast_tx.clone(),
@@ -71,6 +73,13 @@ impl GrpcService {
         .send_compressed(CompressionEncoding::Gzip)
         .accept_compressed(CompressionEncoding::Zstd)
         .send_compressed(CompressionEncoding::Zstd);
+
+        if let Some(size) = max_decoding_message_size {
+            service = service.max_decoding_message_size(size);
+        }
+        if let Some(size) = max_encoding_message_size {
+            service = service.max_encoding_message_size(size);
+        }
 
         let shutdown = Arc::new(Notify::new());
         let shutdown_grpc = Arc::clone(&shutdown);
