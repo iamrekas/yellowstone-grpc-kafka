@@ -228,21 +228,16 @@ impl ArgsAction {
         tokio::pin!(kafka_error_rx);
 
         // Create gRPC client & subscribe
-        let mut builder = GeyserGrpcClient::build_from_shared(config.endpoint)?
+        let mut client = GeyserGrpcClient::build_from_shared(config.endpoint)?
             .x_token(config.x_token)?
             .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(5));
+            .timeout(Duration::from_secs(5))
+            .max_decoding_message_size(config.max_decoding_message_size)
+            .max_encoding_message_size(config.max_encoding_message_size)
+            .tls_config(ClientTlsConfig::new().with_native_roots())?
+            .connect()
+            .await?;
 
-        if let Some(max_decoding_message_size) = config.max_decoding_message_size {
-            builder = builder.max_decoding_message_size(max_decoding_message_size);
-        }
-        if let Some(max_encoding_message_size) = config.max_encoding_message_size {
-            builder = builder.max_encoding_message_size(max_encoding_message_size);
-        }
-
-        builder = builder.tls_config(ClientTlsConfig::new().with_native_roots())?;
-
-        let mut client = builder.connect().await?;
         let mut geyser = client.subscribe_once(config.request.to_proto()).await?;
 
         // Receive-send loop

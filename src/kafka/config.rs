@@ -56,11 +56,25 @@ pub struct ConfigGrpc2Kafka {
         deserialize_with = "deserialize_usize_str"
     )]
     pub kafka_queue_size: usize,
-    pub max_decoding_message_size: Option<usize>,
-    pub max_encoding_message_size: Option<usize>,
+    #[serde(
+        default = "ConfigGrpc2Kafka::default_max_decoding_message_size",
+        deserialize_with = "deserialize_usize_str"
+    )]
+    pub max_decoding_message_size: usize,
+    #[serde(
+        default = "ConfigGrpc2Kafka::default_max_encoding_message_size",
+        deserialize_with = "deserialize_usize_str"
+    )]
+    pub max_encoding_message_size: usize,
 }
 
 impl ConfigGrpc2Kafka {
+    const fn default_max_decoding_message_size() -> usize {
+        10 * 1024 * 1024
+    }
+    const fn default_max_encoding_message_size() -> usize {
+        10 * 1024 * 1024
+    }
     const fn default_kafka_queue_size() -> usize {
         10_000
     }
@@ -74,12 +88,26 @@ pub struct ConfigKafka2Grpc {
     pub listen: SocketAddr,
     #[serde(default = "ConfigKafka2Grpc::channel_capacity_default")]
     pub channel_capacity: usize,
-    pub max_decoding_message_size: Option<usize>,
-    pub max_encoding_message_size: Option<usize>,
+    #[serde(
+        default = "ConfigKafka2Grpc::default_max_decoding_message_size",
+        deserialize_with = "deserialize_usize_str"
+    )]
+    pub max_decoding_message_size: usize,
+    #[serde(
+        default = "ConfigKafka2Grpc::default_max_encoding_message_size",
+        deserialize_with = "deserialize_usize_str"
+    )]
+    pub max_encoding_message_size: usize,
 }
 
 impl ConfigKafka2Grpc {
     const fn channel_capacity_default() -> usize {
         250_000
+    }
+    const fn default_max_decoding_message_size() -> usize {
+        10 * 1024 * 1024
+    }
+    const fn default_max_encoding_message_size() -> usize {
+        10 * 1024 * 1024
     }
 }
